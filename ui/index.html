@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Duo</title>
+<style>
+/* ============ Agent Duo design system ============ */
+:root {
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #17211c;
+  background: #f5f7f5;
+  font-synthesis: none;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+button, input, textarea, select { font: inherit; }
+button { color: inherit; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid #4f8068;
+  outline-offset: 2px;
+}
+.icon { display: block; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; fill: none; }
+
+body { margin: 0; min-width: 320px; min-height: 100vh; background: #f5f7f5; font-size: 13px; }
+.app-shell { min-height: 100vh; display: flex; }
+
+.sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 10; width: 284px; padding: 23px 16px 16px;
+  display: flex; flex-direction: column; background: #f9faf9; border-right: 1px solid #e0e5e1;
+}
+.brand { height: 36px; padding: 0 7px; display: flex; align-items: center; gap: 9px; }
+.brand-mark { width: 28px; height: 28px; display: grid; place-items: center; color: white; background: #172a21; border-radius: 8px; }
+.brand-name { font-family: Georgia, serif; font-size: 21px; font-weight: 700; letter-spacing: -.5px; }
+.beta { padding: 3px 5px; color: #587061; background: #e7ece8; border-radius: 4px; font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.new-run {
+  margin-top: 25px; height: 40px; padding: 0 12px; display: flex; align-items: center; gap: 9px;
+  color: white; background: #244c3a; border: 0; border-radius: 8px; font-size: 13px; font-weight: 650; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(18, 35, 26, .15);
+}
+.new-run:hover { background: #193d2d; }
+.shortcut { margin-left: auto; color: #b9ccc0; font-size: 10px; }
+.search {
+  height: 36px; margin-top: 14px; padding: 0 10px; display: flex; align-items: center; gap: 7px;
+  color: #77827b; background: #f1f3f1; border: 1px solid #e1e5e2; border-radius: 7px;
+}
+.search input { width: 100%; color: #28342e; background: transparent; border: 0; outline: none; font-size: 12px; }
+.search kbd { padding: 2px 5px; color: #87918b; background: white; border: 1px solid #dfe3e0; border-radius: 4px; font-size: 9px; }
+.sidebar-heading { margin: 23px 7px 9px; display: flex; justify-content: space-between; color: #77827c; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sidebar-heading button, .icon-button { padding: 0; color: #818c85; background: none; border: 0; cursor: pointer; }
+.run-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.run-item { width: 100%; padding: 11px 26px 10px 11px; position: relative; text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.run-item:hover { background: #f0f3f1; }
+.run-item.selected { background: #e9efeb; border-color: #d8e2dc; box-shadow: inset 3px 0 #3f7159; }
+.run-title { display: block; overflow: hidden; color: #2c3731; font-size: 12px; font-weight: 560; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.run-meta { margin-top: 7px; display: flex; align-items: center; gap: 5px; color: #849087; font-size: 9px; }
+.status-dot { width: 6px; height: 6px; flex: 0 0 auto; background: #99a29d; border-radius: 50%; }
+.status-dot.running, .status-dot.starting { background: #4b8a69; box-shadow: 0 0 0 3px #dcebe3; }
+.status-dot.consensus { background: #3e7860; }
+.status-dot.no_consensus { background: #c08a36; }
+.status-dot.paused { background: #c28a38; }
+.status-dot.error { background: #b4524a; }
+.run-time { margin-left: auto; }
+.run-del { position: absolute; top: 8px; right: 6px; display: none; padding: 1px 5px; color: #8f9993; background: none; border: 0; border-radius: 4px; font-size: 11px; cursor: pointer; }
+.run-item:hover .run-del { display: block; }
+.run-del:hover { color: #9b514a; background: #f0e7e5; }
+.sidebar-bottom { margin-top: auto; padding-top: 14px; display: flex; align-items: center; gap: 7px; border-top: 1px solid #e3e7e4; }
+.workspace-switcher { min-width: 0; padding: 7px; flex: 1; display: flex; align-items: center; gap: 9px; text-align: left; background: transparent; border: 0; border-radius: 7px; cursor: pointer; }
+.workspace-switcher:hover { background: #eef1ef; }
+.workspace-avatar { width: 28px; height: 28px; display: grid; flex: 0 0 auto; place-items: center; color: #334b3e; background: #dbe8e0; border-radius: 7px; font-size: 11px; font-weight: 700; }
+.workspace-switcher > span:nth-child(2) { min-width: 0; flex: 1; }
+.workspace-switcher b, .workspace-switcher small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-switcher b { font-size: 11px; }
+.workspace-switcher small { margin-top: 2px; color: #8b948f; font-size: 9px; }
+
+.main { min-width: 0; margin-left: 284px; flex: 1; }
+.topbar { height: 82px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; background: white; border-bottom: 1px solid #e2e6e3; }
+.title-row { display: flex; align-items: center; gap: 10px; }
+h1 { margin: 0; max-width: 560px; overflow: hidden; color: #1b2821; font-family: Georgia, serif; font-size: 20px; line-height: 1.2; letter-spacing: -.25px; text-overflow: ellipsis; white-space: nowrap; }
+.live-pill { padding: 3px 6px; display: inline-flex; align-items: center; gap: 5px; color: #47755e; background: #e8f1ec; border-radius: 4px; font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.live-pill i { width: 5px; height: 5px; background: #4d8c6a; border-radius: 50%; animation: pulse 1.8s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.topbar p { margin: 7px 0 0; color: #8a948e; font-size: 10px; }
+.topbar p span { padding: 0 6px; color: #c0c6c2; }
+.header-actions { display: flex; align-items: center; gap: 9px; }
+.collaborators { display: flex; margin-right: 5px; }
+.avatar { width: 26px; height: 26px; margin-left: -5px; display: grid; place-items: center; color: white; border: 2px solid white; border-radius: 50%; font-size: 9px; font-weight: 750; }
+.avatar.human { background: #738a7e; } .avatar.claude { background: #af6444; } .avatar.codex { background: #273f34; }
+.share-button, .more-button { height: 32px; display: flex; align-items: center; justify-content: center; gap: 6px; background: white; border: 1px solid #dce1dd; border-radius: 7px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.share-button { padding: 0 11px; }
+.share-button:hover, .more-button:hover { background: #f5f7f5; }
+
+.agent-strip { min-height: 78px; padding: 12px 28px; display: flex; align-items: center; gap: 0; background: #f8faf8; border-bottom: 1px solid #e1e6e2; }
+.agent-card { width: 240px; min-height: 52px; padding: 8px 10px; display: flex; align-items: center; gap: 10px; background: white; border: 1px solid #e0e5e1; }
+.claude-card { border-radius: 8px 0 0 8px; } .codex-card { border-radius: 0 8px 8px 0; }
+.agent-logo { width: 32px; height: 32px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 7px; font-family: Georgia, serif; font-size: 15px; font-weight: 700; }
+.claude-card .agent-logo { color: #934a31; background: #f4e5de; } .codex-card .agent-logo { color: #e4eee8; background: #263e33; }
+.agent-card > span:nth-child(2) { min-width: 0; flex: 1; }
+.agent-card small, .agent-card b, .agent-card em { display: block; }
+.agent-card small { color: #929b96; font-size: 7px; font-weight: 800; letter-spacing: .09em; }
+.agent-card b { margin-top: 1px; display: inline; font-size: 12px; }
+.agent-card em { margin-left: 6px; display: inline; overflow-wrap: anywhere; color: #89928d; font-size: 9px; font-style: normal; }
+.thinking, .waiting { padding: 4px 6px; border-radius: 4px; font-size: 8px; white-space: nowrap; }
+.thinking { display: flex; align-items: center; gap: 4px; color: #397458; background: #e5f0ea; }
+.thinking i { width: 5px; height: 5px; background: #4a8968; border-radius: 50%; animation: pulse 1.4s infinite; }
+.waiting { color: #7e8983; background: #f0f2f1; }
+.versus-line { width: 82px; height: 1px; position: relative; background: #d6ddd8; }
+.versus-line span { position: absolute; top: -6px; left: 12px; padding: 2px 5px; color: #97a09a; background: #f8faf8; font-size: 7px; font-weight: 750; letter-spacing: .08em; }
+.configure-button { height: 31px; margin-left: auto; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: #5f6c65; background: transparent; border: 1px solid #dce2dd; border-radius: 7px; font-size: 10px; font-weight: 600; cursor: pointer; }
+
+.content-grid { min-height: calc(100vh - 160px); display: grid; grid-template-columns: minmax(540px, 1fr) 292px; }
+.content-grid.no-panel { grid-template-columns: 1fr; }
+.debate-panel { min-width: 0; position: relative; padding-bottom: 130px; background: #f7f8f7; }
+.debate-panel.no-composer { padding-bottom: 40px; }
+.tabs { height: 50px; padding: 0 28px; display: flex; align-items: flex-end; gap: 22px; background: white; border-bottom: 1px solid #e1e5e2; }
+.tabs > button { height: 50px; padding: 0; color: #7d8882; background: none; border: 0; border-bottom: 2px solid transparent; font-size: 11px; font-weight: 650; cursor: pointer; }
+.tabs > button.active { color: #264f3c; border-color: #3e7359; }
+.tabs button span { margin-left: 4px; padding: 2px 5px; background: #edf0ee; border-radius: 8px; font-size: 8px; }
+.round-indicator { margin: 0 0 12px auto; display: flex; align-items: center; gap: 10px; color: #77827c; font-size: 9px; }
+.round-indicator > div { display: flex; gap: 3px; }
+.round-indicator i { width: 15px; height: 3px; background: #dfe4e1; border-radius: 4px; }
+.round-indicator i.done { background: #7a9f8b; }
+.round-indicator i.active { background: #3f755a; }
+.timeline { max-width: 780px; margin: 0 auto; padding: 22px 28px 44px; }
+.system-note { margin: 0 0 24px 23px; padding: 9px 12px; display: flex; align-items: center; gap: 9px; color: #718078; background: #edf1ee; border-radius: 7px; font-size: 9px; }
+.system-note > span { width: 23px; height: 23px; display: grid; flex: 0 0 auto; place-items: center; color: #50705f; background: #dde8e1; border-radius: 6px; }
+.system-note p { margin: 0; flex: 1; }
+.system-note b { margin-right: 7px; color: #415249; }
+.system-note time { color: #99a19c; }
+.system-note.error { color: #8a4a44; background: #f6ebe9; }
+.system-note.error > span { color: #93483f; background: #ecd9d5; }
+.system-note.error b { color: #7c3b33; }
+.message { position: relative; padding: 0 0 21px 45px; }
+.message::before { content: ""; position: absolute; top: 34px; bottom: 0; left: 15px; width: 1px; background: #dce2de; }
+.message:last-of-type::before { background: linear-gradient(#dce2de, transparent); }
+.timeline-avatar { position: absolute; top: 0; left: 0; z-index: 1; width: 31px; height: 31px; display: grid; place-items: center; color: white; background: #2d493b; border: 3px solid #f7f8f7; border-radius: 8px; font-family: Georgia, serif; font-size: 11px; font-weight: 700; }
+.message.claude .timeline-avatar { color: #90482f; background: #f1dfd7; }
+.message.human .timeline-avatar { color: #fff; background: #667d71; }
+.message-card { overflow: hidden; background: white; border: 1px solid #dfe4e0; border-radius: 9px; box-shadow: 0 1px 2px rgba(27, 43, 34, .04); }
+.message.final .message-card { border-color: #b7d0c2; }
+.message-card > header { min-height: 42px; padding: 6px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #edf0ee; }
+.message-card header > div { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.message-card header b { color: #2a3730; font-size: 11px; }
+.message-card header span, .message-card header time { color: #8d9691; font-size: 8px; }
+.model-tag, .round-tag { padding: 3px 5px; background: #f0f3f1; border-radius: 4px; }
+.message.codex .model-tag { color: #50705f; background: #eaf0ec; }
+.message-body { padding: 14px; color: #3d4943; font-size: 10.5px; line-height: 1.58; overflow-wrap: anywhere; }
+.message-body p { margin: 0; }
+.message-body p + p, .message-body ul + p, .message-body p + ul { margin-top: 8px; }
+.message-body ul { margin: 10px 0 0; padding: 0; list-style: none; }
+.message-body li { position: relative; margin-top: 4px; padding-left: 14px; }
+.message-body li::before { content: ""; position: absolute; top: 7px; left: 1px; width: 4px; height: 4px; background: #72917f; border-radius: 50%; }
+.message-body code { padding: 0 3px; background: #f0f3f1; border-radius: 3px; font-size: 10px; }
+.message-card footer { min-height: 35px; padding: 0 13px; display: flex; align-items: center; justify-content: space-between; color: #6f7e76; background: #fbfcfb; border-top: 1px solid #edf0ee; font-size: 8px; font-weight: 600; }
+.message-card footer span { display: flex; align-items: center; gap: 5px; }
+.message-card footer button { padding: 4px; color: #89948d; background: none; border: 0; cursor: pointer; }
+.typing-row { min-height: 42px; position: relative; padding-left: 45px; display: flex; align-items: center; gap: 10px; }
+.typing-row > span:nth-child(2) { display: flex; gap: 3px; }
+.typing-row > span:nth-child(2) i { width: 4px; height: 4px; background: #6e8076; border-radius: 50%; animation: bounce 1.2s infinite; }
+.typing-row > span:nth-child(2) i:nth-child(2) { animation-delay: .15s; }
+.typing-row > span:nth-child(2) i:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 50% { transform: translateY(-3px); opacity: .5; } }
+.typing-row p { margin: 0; font-size: 9px; }
+.typing-row b, .typing-row small { display: block; }
+.typing-row b { color: #435149; }
+.typing-row small { margin-top: 3px; color: #949c97; }
+.artifacts-view { max-width: 760px; margin: 0 auto; padding: 28px; display: grid; gap: 10px; }
+.artifact-card { padding: 14px; display: flex; align-items: center; gap: 12px; background: white; border: 1px solid #dfe4e0; border-radius: 9px; }
+.artifact-card > span { width: 34px; height: 34px; display: grid; flex: 0 0 auto; place-items: center; color: #476b59; background: #eaf0ec; border-radius: 7px; }
+.artifact-card div { flex: 1; min-width: 0; }
+.artifact-card b, .artifact-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.artifact-card b { font-size: 11px; }
+.artifact-card small { margin-top: 4px; color: #89938d; font-size: 9px; }
+.artifact-card button { background: none; border: 0; color: #89948d; cursor: pointer; }
+.director-composer { position: absolute; right: 24px; bottom: 18px; left: 24px; z-index: 3; padding: 11px; background: white; border: 1px solid #ccd5cf; border-radius: 10px; box-shadow: 0 8px 25px rgba(25, 44, 33, .1); }
+.composer-label { display: flex; align-items: center; gap: 5px; color: #52675c; font-size: 8px; font-weight: 800; letter-spacing: .06em; }
+.composer-label span { margin-left: 4px; color: #9aa29e; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.director-composer textarea { width: 100%; min-height: 39px; margin-top: 7px; resize: none; color: #28352e; background: transparent; border: 0; outline: none; font-size: 11px; line-height: 1.45; }
+.director-composer textarea::placeholder { color: #9aa39e; }
+.composer-actions { display: flex; align-items: center; justify-content: space-between; }
+.composer-actions > span { color: #a0a8a3; font-size: 8px; }
+.composer-actions kbd { margin-right: 2px; padding: 2px 4px; background: #f1f3f2; border: 1px solid #e1e5e2; border-radius: 3px; }
+.composer-actions .send-row { display: flex; gap: 8px; }
+.composer-actions button { height: 29px; padding: 0 10px; display: flex; align-items: center; gap: 6px; color: white; background: #28503d; border: 0; border-radius: 6px; font-size: 9px; font-weight: 650; cursor: pointer; }
+.composer-actions button:disabled { color: #a7afaa; background: #edf0ee; cursor: default; }
+
+.control-panel { background: white; border-left: 1px solid #e1e5e2; }
+.control-header { height: 50px; padding: 0 17px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e4e8e5; }
+.control-header > div { display: flex; align-items: center; gap: 8px; }
+.pulse-icon { width: 25px; height: 25px; display: grid; place-items: center; color: #4c725e; background: #e8f0eb; border-radius: 6px; }
+.control-header h2 { margin: 0; font-family: Georgia, serif; font-size: 13px; }
+.control-status { display: flex; align-items: center; gap: 5px; color: #3f7b5d; font-size: 8px; font-weight: 700; text-transform: capitalize; }
+.control-status i { width: 6px; height: 6px; background: #4c916d; border-radius: 50%; box-shadow: 0 0 0 3px #e2eee7; }
+.control-status.paused, .control-status.no_consensus, .control-status.stopped { color: #aa772e; }
+.control-status.paused i, .control-status.no_consensus i, .control-status.stopped i { background: #c28a38; box-shadow: 0 0 0 3px #f2e9d8; }
+.control-status.error { color: #9b514a; }
+.control-status.error i { background: #b4524a; box-shadow: 0 0 0 3px #f0dedc; }
+.run-progress { padding: 17px; border-bottom: 1px solid #e8ebe9; }
+.run-progress > div:first-child { display: flex; justify-content: space-between; color: #7b8780; font-size: 9px; }
+.run-progress > div:first-child b { color: #34433b; }
+.progress-track { height: 4px; margin-top: 10px; overflow: hidden; background: #e8ece9; border-radius: 4px; }
+.progress-track i { width: 0; height: 100%; display: block; background: #4e7e66; border-radius: 4px; transition: width .4s; }
+.run-stats { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); }
+.run-stats span { padding-left: 12px; border-left: 1px solid #e4e8e5; }
+.run-stats span:first-child { padding-left: 0; border-left: 0; }
+.run-stats small, .run-stats b { display: block; }
+.run-stats small { color: #9aa29d; font-size: 7px; font-weight: 700; letter-spacing: .06em; }
+.run-stats b { margin-top: 4px; font-family: ui-monospace, monospace; font-size: 11px; }
+.run-buttons { padding: 12px 17px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-bottom: 1px solid #e8ebe9; }
+.run-buttons button { height: 32px; display: flex; align-items: center; justify-content: center; gap: 6px; background: white; border: 1px solid #d7ddd9; border-radius: 6px; font-size: 9px; font-weight: 650; cursor: pointer; }
+.run-buttons button:hover { background: #f5f7f5; }
+.run-buttons button:disabled { color: #a7afaa; cursor: default; background: #fafbfa; }
+.run-buttons .stop-button { color: #9b514a; }
+.panel-section { padding: 16px 17px; border-bottom: 1px solid #e8ebe9; }
+.panel-title { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; color: #536159; font-size: 9px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.panel-title button { padding: 0; color: #5e806e; background: none; border: 0; font-size: 8px; font-weight: 650; text-transform: none; cursor: pointer; }
+.objective { margin: 0; color: #5c6862; font-size: 9.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.rules { margin: 0; padding: 0; display: grid; gap: 8px; list-style: none; color: #5d6962; font-size: 9px; }
+.rules li { display: flex; align-items: center; gap: 7px; }
+.rules .icon { color: #4b8064; flex: 0 0 auto; }
+.workspace-path { width: 100%; padding: 10px; display: flex; align-items: center; gap: 8px; text-align: left; background: #f5f7f5; border: 1px solid #e1e6e2; border-radius: 7px; cursor: pointer; }
+.workspace-path > span { min-width: 0; flex: 1; }
+.workspace-path small, .workspace-path b { display: block; }
+.workspace-path small { color: #99a19d; font-size: 6px; font-weight: 700; letter-spacing: .07em; }
+.workspace-path b { margin-top: 3px; overflow: hidden; font-family: ui-monospace, monospace; font-size: 8.5px; text-overflow: ellipsis; white-space: nowrap; }
+.permissions { margin-top: 8px; display: flex; gap: 7px; }
+.permissions span { padding: 4px 6px; display: flex; align-items: center; gap: 4px; color: #6f7b74; background: #f0f3f1; border-radius: 4px; font-size: 7px; }
+.activity-section { border: 0; }
+.activity-line { min-width: 0; margin-top: 9px; display: grid; grid-template-columns: 6px 40px minmax(0, 1fr) 28px; align-items: center; gap: 5px; font-size: 8px; }
+.activity-line i { width: 5px; height: 5px; border-radius: 50%; }
+.codex-dot { background: #3c6752; } .claude-dot { background: #b06447; } .human-dot { background: #738a7e; }
+.activity-line span { color: #53635a; font-weight: 650; }
+.activity-line p { margin: 0; overflow: hidden; color: #87918b; text-overflow: ellipsis; white-space: nowrap; }
+.activity-line time { color: #a0a7a3; text-align: right; }
+.toast { position: fixed; right: 18px; bottom: 18px; z-index: 50; padding: 10px 13px; display: flex; align-items: center; gap: 8px; color: white; background: #203e30; border-radius: 8px; box-shadow: 0 8px 28px rgba(18, 35, 26, .25); font-size: 10px; animation: toast-in .2s ease-out; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* ============ Agent Duo additions ============ */
+.form-view { max-width: 660px; margin: 0 auto; padding: 26px 28px 60px; }
+.form-card { padding: 20px; background: white; border: 1px solid #dfe4e0; border-radius: 10px; box-shadow: 0 1px 2px rgba(27, 43, 34, .04); }
+.form-card h2 { margin: 0; color: #1b2821; font-family: Georgia, serif; font-size: 16px; }
+.form-card > p { margin: 5px 0 6px; color: #8a948e; font-size: 10px; }
+.field { margin-top: 13px; }
+.field > label { display: block; margin-bottom: 5px; color: #536159; font-size: 9px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 8px 10px; color: #28342e; background: #f9faf9;
+  border: 1px solid #dce2dd; border-radius: 7px; font-size: 12px;
+}
+.field textarea { min-height: 72px; resize: vertical; line-height: 1.5; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.roles-details { margin-top: 14px; padding: 10px 12px; background: #f9faf9; border: 1px solid #e1e6e2; border-radius: 7px; }
+.roles-details summary { color: #536159; font-size: 10px; font-weight: 650; cursor: pointer; }
+.roles-details textarea { background: white; font-size: 11px; min-height: 130px; }
+.effort-label { display: flex; align-items: baseline; justify-content: space-between; }
+.effort-label b { color: #2f5a45; font-size: 10px; font-weight: 700; letter-spacing: 0; text-transform: none; }
+.effort-slider { width: 100%; height: 4px; margin: 14px 0 6px; appearance: none; -webkit-appearance: none; background: #e8ece9; border: 0; border-radius: 4px; cursor: pointer; }
+.effort-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; background: #2a5a44; border: 2.5px solid white; border-radius: 50%; box-shadow: 0 1px 3px rgba(18, 35, 26, .35); cursor: pointer; }
+.effort-slider::-moz-range-thumb { width: 12px; height: 12px; background: #2a5a44; border: 2.5px solid white; border-radius: 50%; box-shadow: 0 1px 3px rgba(18, 35, 26, .35); cursor: pointer; }
+.effort-slider:disabled { opacity: .45; cursor: default; }
+.effort-slider:disabled::-webkit-slider-thumb { background: #99a29d; cursor: default; }
+.effort-ticks { display: flex; justify-content: space-between; color: #9aa29d; font-size: 7px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.effort-ticks span { cursor: pointer; }
+.effort-ticks span.on { color: #2f5a45; }
+.start-row { margin-top: 18px; display: flex; align-items: center; gap: 10px; }
+.primary-button { height: 36px; padding: 0 14px; display: inline-flex; align-items: center; gap: 7px; color: white; background: #244c3a; border: 0; border-radius: 8px; font-size: 12px; font-weight: 650; cursor: pointer; }
+.primary-button:hover { background: #193d2d; }
+.primary-button:disabled { background: #a9b6ae; cursor: default; }
+.hint-text { color: #8a948e; font-size: 10px; }
+.empty-state { padding: 40px 28px; color: #8a948e; font-size: 11px; text-align: center; }
+
+@media (max-width: 1100px) {
+  .content-grid, .content-grid.no-panel { grid-template-columns: 1fr; }
+  .control-panel { display: none; }
+}
+@media (max-width: 760px) {
+  .sidebar { width: 72px; padding-inline: 10px; }
+  .brand { padding: 0; justify-content: center; }
+  .brand-name, .beta, .shortcut, .search input, .search kbd, .sidebar-heading span, .run-item span, .workspace-switcher > span:nth-child(2), .workspace-switcher > .icon, .run-del { display: none; }
+  .new-run { justify-content: center; padding: 0; }
+  .search { justify-content: center; padding: 0; }
+  .sidebar-heading { justify-content: center; }
+  .run-item { height: 38px; padding: 11px; }
+  .run-item.selected { background: #e3ebe6; }
+  .sidebar-bottom { flex-direction: column; }
+  .workspace-switcher { flex: none; padding: 5px; }
+  .main { margin-left: 72px; }
+  .topbar { height: 70px; padding: 0 16px; }
+  .topbar p, .collaborators { display: none; }
+  h1 { max-width: 330px; font-size: 16px; }
+  .agent-strip { padding: 10px 16px; }
+  .agent-card { width: auto; flex: 1; }
+  .agent-card > span:nth-child(2) em, .thinking, .waiting, .versus-line, .configure-button { display: none; }
+  .content-grid { min-height: calc(100vh - 138px); }
+  .tabs { padding: 0 16px; }
+  .timeline { padding-inline: 16px; }
+  .round-indicator { display: none; }
+}
+@media (max-width: 520px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .live-pill { display: none; }
+  .agent-card { padding: 6px; }
+  .agent-card small { display: none; }
+  .timeline { padding: 16px 10px 40px; }
+  .system-note { margin-left: 0; }
+  .message { padding-left: 38px; }
+  .message-body { padding: 12px; }
+  .director-composer { right: 10px; bottom: 10px; left: 10px; }
+  .field-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><svg class="icon" width="17" height="17" viewBox="0 0 24 24"><path d="M9 6V4a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v16a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6Z"/></svg></div>
+      <span class="brand-name">Agent Duo</span>
+      <span class="beta">BETA</span>
+    </div>
+    <button class="new-run" id="newRunBtn">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New orchestration <span class="shortcut">⌘ N</span>
+    </button>
+    <label class="search">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="searchInput" aria-label="Search runs" placeholder="Search runs">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="sidebar-heading"><span>Recent runs</span></div>
+    <nav class="run-list" id="runList" aria-label="Recent runs"></nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="title-row"><h1 id="pageTitle">New orchestration</h1><span class="live-pill" id="livePill" style="display:none"><i></i> LIVE</span></div>
+        <p id="pageSub">Configure a debate between Claude and Codex</p>
+      </div>
+      <div class="header-actions">
+        <div class="collaborators"><span class="avatar human">A</span><span class="avatar claude">C</span><span class="avatar codex">X</span></div>
+        <button class="share-button" id="copyDebateBtn" style="display:none">
+          <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg> Copy debate
+        </button>
+      </div>
+    </header>
+
+    <section class="agent-strip">
+      <div class="agent-card claude-card" id="leadCard"></div>
+      <div class="versus-line"><span>CHALLENGES</span></div>
+      <div class="agent-card codex-card" id="chalCard"></div>
+      <button class="configure-button" id="configureBtn">
+        <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg> New run
+      </button>
+    </section>
+
+    <!-- ============ NEW ORCHESTRATION VIEW ============ -->
+    <div class="content-grid no-panel" id="newView">
+      <section class="debate-panel no-composer">
+        <div class="form-view">
+          <form class="form-card" id="startForm">
+            <h2>New orchestration</h2>
+            <p>Two agents investigate your hypothesis adversarially and converge to a consensus report.</p>
+            <div class="field">
+              <label>Task / hypothesis</label>
+              <textarea id="task" placeholder="Hypothesis: 4h BTC momentum survives 10bps fees"></textarea>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Who leads</label>
+                <select id="leadAgent">
+                  <option value="claude" selected>Claude leads · Codex challenges</option>
+                  <option value="codex">Codex leads · Claude challenges</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Max rounds</label>
+                <input id="rounds" type="number" min="1" max="20" value="5">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Claude model</label>
+                <select id="claudeModel"></select>
+                <input id="claudeModelCustom" placeholder="full model ID" style="display:none; margin-top:6px">
+              </div>
+              <div class="field">
+                <label>Codex model</label>
+                <select id="codexModel"></select>
+                <input id="codexModelCustom" placeholder="model slug" style="display:none; margin-top:6px">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label class="effort-label">Codex reasoning effort
+                  <b id="effortValue">model default</b></label>
+                <input type="range" class="effort-slider" id="codexEffort"
+                       min="0" max="0" step="1" value="0" aria-label="Codex reasoning effort">
+                <div class="effort-ticks" id="effortTicks"></div>
+              </div>
+              <div class="field">
+                <label>Working directory</label>
+                <input id="workdir" placeholder="default: ./workspace">
+              </div>
+            </div>
+            <details class="roles-details" id="rolesBox">
+              <summary>Roles — edit for this run</summary>
+              <div class="field">
+                <label>Lead role</label>
+                <textarea id="leadRole" spellcheck="false"></textarea>
+              </div>
+              <div class="field">
+                <label>Challenger role</label>
+                <textarea id="chalRole" spellcheck="false"></textarea>
+              </div>
+            </details>
+            <div class="start-row">
+              <button class="primary-button" type="submit" id="startBtn">
+                <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg>
+                Start debate
+              </button>
+              <span class="hint-text" id="startHint"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ RUN VIEW ============ -->
+    <div class="content-grid" id="runView" style="display:none">
+      <section class="debate-panel">
+        <div class="tabs">
+          <button id="tabDebate" class="active">Debate <span id="debateCount">0</span></button>
+          <button id="tabArtifacts">Artifacts <span id="artifactCount">–</span></button>
+          <div class="round-indicator" id="roundIndicator"></div>
+        </div>
+        <div class="timeline" id="timeline" style="display:none"></div>
+        <div class="artifacts-view" id="artifactsView" style="display:none"></div>
+        <form class="director-composer" id="composer">
+          <div class="composer-label">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            HUMAN DIRECTION <span>Both agents will see this</span>
+          </div>
+          <textarea id="directorMsg" rows="2" placeholder="Steer the debate, add a constraint, or ask for clarification..."></textarea>
+          <div class="composer-actions">
+            <span><kbd>⌘</kbd><kbd>↵</kbd> to send</span>
+            <button type="submit" id="sendBtn">Send direction
+              <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="control-panel">
+        <div class="control-header">
+          <div>
+            <span class="pulse-icon"><svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg></span>
+            <h2>Run control</h2>
+          </div>
+          <span class="control-status" id="controlStatus"><i></i><span id="controlStatusText">Running</span></span>
+        </div>
+        <div class="run-progress">
+          <div><span>Progress</span><b id="progressLabel">Round – of –</b></div>
+          <div class="progress-track"><i id="progressBar"></i></div>
+          <div class="run-stats">
+            <span><small>ELAPSED</small><b id="statElapsed">–</b></span>
+            <span><small>MESSAGES</small><b id="statMessages">0</b></span>
+            <span><small>ROUND</small><b id="statRound">–</b></span>
+          </div>
+        </div>
+        <div class="run-buttons">
+          <button id="pauseBtn">
+            <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg>
+            <span id="pauseLabel">Pause</span>
+          </button>
+          <button class="stop-button" id="stopBtn">
+            <svg class="icon" width="15" height="15" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Stop
+          </button>
+        </div>
+        <div class="panel-section">
+          <div class="panel-title"><span>Objective</span></div>
+          <p class="objective" id="objectiveText"></p>
+        </div>
+        <div class="panel-section">
+          <div class="panel-title"><span>Debate rules</span></div>
+          <ul class="rules">
+            <li><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> Challenge assumptions, cite evidence</li>
+            <li><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> Every reply ends with a verdict</li>
+            <li><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> Stop when both agents agree</li>
+          </ul>
+        </div>
+        <div class="panel-section">
+          <div class="panel-title"><span>Workspace</span></div>
+          <button class="workspace-path" id="workdirBtn" type="button">
+            <svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v10H3z"/></svg>
+            <span><small>WORKING DIRECTORY</small><b id="workdirPath">–</b></span>
+          </button>
+          <div class="permissions">
+            <span><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="m5 7 4 4-4 4M11 16h7"/><rect x="2" y="3" width="20" height="18" rx="3"/></svg> Shell access</span>
+            <span><svg class="icon" width="13" height="13" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 13h6M9 17h4"/></svg> File edits</span>
+          </div>
+        </div>
+        <div class="panel-section activity-section">
+          <div class="panel-title"><span>Live activity</span></div>
+          <div id="activityLines"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const api = (path, opts) => fetch(path, opts).then(r => r.json());
+
+// ---------- state ----------
+let active = null, view = 'new', activeTab = 'debate';
+let runsCache = [], currentState = null, codexModels = [];
+let defaultRoles = {lead: '', challenger: ''};
+let pollTimer = null, toastTimer = null;
+
+// ---------- helpers ----------
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fmt = s => esc(s).replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>').replace(/`([^`\n]+)`/g, '<code>$1</code>');
+const stripProtocol = t => t.replace(/^\s*(CONFIDENCE|VERDICT):.*$/gim, '').trim();
+const AGENT_META = {claude: {letter: 'C', label: 'Claude'}, codex: {letter: 'X', label: 'Codex'}};
+const STATUS_LABEL = {running: 'Running', starting: 'Starting', paused: 'Paused',
+  consensus: 'Consensus', no_consensus: 'No consensus', stopped: 'Stopped', error: 'Error'};
+
+function toast(msg) {
+  const t = $('toast');
+  t.innerHTML = `<svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> ${esc(msg)}`;
+  t.style.display = 'flex';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 2400);
+}
+
+function relTime(iso) {
+  if (!iso) return '';
+  const d = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (d < 60) return 'now';
+  if (d < 3600) return Math.floor(d / 60) + 'm';
+  if (d < 86400) return Math.floor(d / 3600) + 'h';
+  return Math.floor(d / 86400) + 'd';
+}
+const clockOf = iso => iso ? new Date(iso).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) : '';
+
+function elapsed(state) {
+  if (!state.started) return '–';
+  const end = ['running', 'paused', 'starting'].includes(state.status)
+    ? Date.now() : new Date(state.updated).getTime();
+  let s = Math.max(0, Math.floor((end - new Date(state.started).getTime()) / 1000));
+  const h = Math.floor(s / 3600); s %= 3600;
+  const m = Math.floor(s / 60); s %= 60;
+  const p = n => String(n).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+}
+
+function renderBody(text) {
+  const lines = stripProtocol(text).split('\n');
+  let html = '', inList = false;
+  for (const raw of lines) {
+    const m = raw.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/);
+    if (m) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${fmt(m[1])}</li>`;
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      const t = raw.replace(/^#+\s*/, '').trim();
+      if (t) html += `<p>${raw.match(/^#+\s/) ? '<b>' + fmt(t) + '</b>' : fmt(t)}</p>`;
+    }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+// who is expected to reply next (for Thinking/Waiting chips + typing row)
+function thinkingAgent(state) {
+  if (!['running', 'starting'].includes(state.status)) return null;
+  const agentTurns = state.turns.filter(t => t.kind === 'agent');
+  if (!agentTurns.length) return state.lead.name;
+  const last = agentTurns[agentTurns.length - 1].agent;
+  return last === state.lead.name ? state.challenger.name : state.lead.name;
+}
+
+// ---------- sidebar ----------
+async function refreshRuns() {
+  try { runsCache = await api('/api/runs'); } catch (e) { return; }
+  drawRuns();
+}
+function drawRuns() {
+  const q = $('searchInput').value.trim().toLowerCase();
+  const runs = runsCache.filter(r => !q || (r.task || '').toLowerCase().includes(q));
+  $('runList').innerHTML = runs.map(r => `
+    <div class="run-item ${r.run_id === active ? 'selected' : ''}" role="button" tabindex="0"
+         onclick="selectRun('${r.run_id}')">
+      <span class="run-title">${esc(r.task)}</span>
+      <span class="run-meta">
+        <span class="status-dot ${r.status}"></span>
+        ${STATUS_LABEL[r.status] || r.status}
+        <span>·</span><span>${r.turns} msgs</span>
+        <span class="run-time">${relTime(r.updated)}</span>
+      </span>
+      <button class="run-del" title="Delete run" onclick="event.stopPropagation(); delRun('${r.run_id}')">✕</button>
+    </div>`).join('') ||
+    '<div class="empty-state">No runs yet</div>';
+}
+
+async function delRun(id) {
+  if (!confirm(`Delete run ${id} permanently? Its transcript, report and state are removed from disk.`)) return;
+  const res = await api(`/api/delete/${id}`, {method: 'POST'});
+  if (res.error) { toast(res.error); return; }
+  toast('Run deleted');
+  if (active === id) { active = null; showNewView(); }
+  refreshRuns();
+}
+
+// ---------- views ----------
+function showNewView() {
+  view = 'new';
+  clearTimeout(pollTimer);
+  $('newView').style.display = '';
+  $('runView').style.display = 'none';
+  $('pageTitle').textContent = 'New orchestration';
+  $('pageSub').textContent = 'Configure a debate between Claude and Codex';
+  $('livePill').style.display = 'none';
+  $('copyDebateBtn').style.display = 'none';
+  drawAgentStripFromForm();
+  drawRuns();
+}
+
+function selectRun(id) {
+  active = id;
+  view = 'run';
+  $('newView').style.display = 'none';
+  $('runView').style.display = '';
+  clearTimeout(pollTimer);
+  drawRuns();
+  poll();
+}
+
+// ---------- agent strip ----------
+function agentCardHTML(role, cli, model, chip) {
+  const meta = AGENT_META[cli] || {letter: '?', label: cli};
+  return `<span class="agent-logo">${meta.letter}</span>
+    <span><small>${role}</small><b>${meta.label}</b><em>${esc(model || 'default')}</em></span>
+    ${chip || ''}`;
+}
+function drawAgentStripFromForm() {
+  const lead = $('leadAgent').value, chal = lead === 'claude' ? 'codex' : 'claude';
+  const models = {claude: modelOf('claudeModel', 'claudeModelCustom') || 'default',
+                  codex: modelOf('codexModel', 'codexModelCustom') || 'default'};
+  const leadEl = lead === 'claude' ? $('leadCard') : $('chalCard');
+  // keep Claude card visually left (claude-card), Codex right, as in the design
+  $('leadCard').innerHTML = agentCardHTML(lead === 'claude' ? 'LEAD AGENT' : 'CHALLENGER', 'claude', models.claude);
+  $('chalCard').innerHTML = agentCardHTML(lead === 'codex' ? 'LEAD AGENT' : 'CHALLENGER', 'codex', models.codex);
+}
+function drawAgentStripFromState(s) {
+  const think = thinkingAgent(s);
+  const chip = name => {
+    if (s.status === 'paused') return '<span class="waiting">Paused</span>';
+    if (!think) return '';
+    return name === think
+      ? '<span class="thinking"><i></i> Thinking</span>'
+      : '<span class="waiting">Waiting</span>';
+  };
+  const byCli = cli => s.lead.cli === cli ? s.lead : s.challenger;
+  const roleOf = a => a.name === s.lead.name ? 'LEAD AGENT' : 'CHALLENGER';
+  const c = byCli('claude'), x = byCli('codex');
+  $('leadCard').innerHTML = agentCardHTML(roleOf(c), 'claude', c.model, chip(c.name));
+  $('chalCard').innerHTML = agentCardHTML(roleOf(x), 'codex', x.model, chip(x.name));
+}
+
+// ---------- run rendering ----------
+function footerOf(t, state) {
+  if (t.kind === 'human') return 'Direction sent to both agents';
+  if (t.verdict === 'AGREE') return 'Agreement signaled';
+  return t.agent === state.challenger.name ? 'Challenge raised' : 'Position stated';
+}
+
+function renderRun(state) {
+  currentState = state;
+  const live = ['running', 'paused', 'starting'].includes(state.status);
+
+  // topbar
+  $('pageTitle').textContent = state.task;
+  $('pageTitle').title = state.task;
+  $('pageSub').innerHTML = `${esc((state.workdir || '').split('/').pop() || 'workspace')} <span>/</span> Started ${esc(clockOf(state.started).slice(0, 5))} · ${esc(state.run_id)}`;
+  $('livePill').style.display = live ? '' : 'none';
+  $('copyDebateBtn').style.display = '';
+
+  drawAgentStripFromState(state);
+
+  // tabs + round indicator
+  const agentTurns = state.turns.filter(t => t.kind === 'agent');
+  const round = agentTurns.length ? Math.max(...agentTurns.map(t => t.round || 1)) : 1;
+  $('debateCount').textContent = state.turns.length;
+  let segs = '';
+  const maxSeg = Math.min(state.max_rounds, 12);
+  for (let i = 1; i <= maxSeg; i++)
+    segs += `<i class="${i < round ? 'done' : i === round && live ? 'active' : i <= round ? 'done' : ''}"></i>`;
+  $('roundIndicator').innerHTML = `<span>Round ${round} of ${state.max_rounds}</span><div>${segs}</div>`;
+
+  // timeline
+  const lead = state.lead, chal = state.challenger;
+  let h = `
+    <div class="system-note">
+      <span><svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2zM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8zM19 13l.7 1.3L21 15l-1.3.7L19 17l-.7-1.3L17 15l1.3-.7z"/></svg></span>
+      <p><b>Orchestration started</b>${esc(AGENT_META[lead.cli].label)} leads. ${esc(AGENT_META[chal.cli].label)} challenges each proposal. Consensus requires both agents to agree.</p>
+      <time>${clockOf(state.started).slice(0, 5)}</time>
+    </div>`;
+
+  for (const t of state.turns) {
+    if (t.kind === 'human') {
+      h += `
+      <article class="message human">
+        <div class="timeline-avatar">A</div>
+        <div class="message-card">
+          <header><div><b>You</b><span>Human director</span><span class="model-tag">Intervention</span></div>
+            <div><time>${clockOf(t.ts)}</time></div></header>
+          <div class="message-body">${renderBody(t.text)}</div>
+          <footer><span><svg class="icon" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Direction sent to both agents</span></footer>
+        </div>
+      </article>`;
+      continue;
+    }
+    const isLead = t.agent === lead.name;
+    const a = isLead ? lead : chal;
+    const meta = AGENT_META[a.cli];
+    h += `
+      <article class="message ${a.cli}">
+        <div class="timeline-avatar">${meta.letter}</div>
+        <div class="message-card">
+          <header>
+            <div><b>${meta.label}</b><span>${isLead ? 'Research lead' : 'Technical challenger'}</span>
+              <span class="model-tag">${esc(a.model || 'default')}</span></div>
+            <div>${t.confidence != null ? `<span class="round-tag">confidence ${t.confidence}/10</span>` : ''}
+              <span class="round-tag">Round ${t.round}</span><time>${clockOf(t.ts)}</time></div>
+          </header>
+          <div class="message-body">${renderBody(t.text)}</div>
+          <footer>
+            <span>${t.verdict === 'AGREE'
+              ? '<svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>'
+              : '<svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg>'} ${footerOf(t, state)}</span>
+            <button type="button" title="Copy message" onclick='copyText(${JSON.stringify(t.text).replace(/'/g, "&#39;")})'>
+              <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+            </button>
+          </footer>
+        </div>
+      </article>`;
+  }
+
+  if (state.error) h += `
+    <div class="system-note error">
+      <span><svg class="icon" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></span>
+      <p><b>Run failed</b>${esc(state.error)}</p>
+    </div>`;
+
+  if (state.final_report) {
+    const meta = AGENT_META[lead.cli];
+    h += `
+      <article class="message ${lead.cli} final">
+        <div class="timeline-avatar">${meta.letter}</div>
+        <div class="message-card">
+          <header><div><b>${meta.label}</b><span>Research lead</span><span class="model-tag">${esc(lead.model || 'default')}</span></div>
+            <div><span class="round-tag">Final report</span></div></header>
+          <div class="message-body">${renderBody(state.final_report)}</div>
+          <footer><span><svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 13h6M9 17h4"/></svg> ${state.status === 'consensus' ? 'Consensus reached' : 'Final report'}</span>
+          <button type="button" title="Copy report" onclick='copyText(${JSON.stringify(state.final_report).replace(/'/g, "&#39;")})'>
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></footer>
+        </div>
+      </article>`;
+  }
+
+  const think = thinkingAgent(state);
+  if (think) {
+    const a = think === lead.name ? lead : chal;
+    const meta = AGENT_META[a.cli];
+    h += `
+      <div class="typing-row">
+        <span class="timeline-avatar" style="position:static; flex:0 0 auto">${meta.letter}</span>
+        <span><i></i><i></i><i></i></span>
+        <p><b>${meta.label} is working on its reply</b><small>Reasoning, running checks or backtests</small></p>
+      </div>`;
+  }
+  if (state.status === 'paused') h += `
+    <div class="system-note"><span><svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg></span>
+    <p><b>Paused</b>Press Resume to continue — a turn already in flight finishes first.</p></div>`;
+
+  $('timeline').innerHTML = h;
+
+  // control panel
+  const st = $('controlStatus');
+  st.className = `control-status ${state.status}`;
+  $('controlStatusText').textContent = STATUS_LABEL[state.status] || state.status;
+  $('progressLabel').textContent = `Round ${round} of ${state.max_rounds}`;
+  $('progressBar').style.width = `${Math.min(100, Math.round(100 * (live ? round - 0.5 : state.max_rounds) / state.max_rounds))}%`;
+  if (!live) $('progressBar').style.width = '100%';
+  $('statElapsed').textContent = elapsed(state);
+  $('statMessages').textContent = state.turns.length;
+  $('statRound').textContent = `${round}/${state.max_rounds}`;
+  $('pauseBtn').disabled = $('stopBtn').disabled = !live;
+  $('pauseLabel').textContent = state.status === 'paused' ? 'Resume' : 'Pause';
+  $('objectiveText').textContent = state.task;
+  $('workdirPath').textContent = state.workdir || '–';
+  $('sendBtn').disabled = !live;
+  $('directorMsg').placeholder = live
+    ? 'Steer the debate, add a constraint, or ask for clarification...'
+    : 'Run finished — start a new orchestration to continue.';
+
+  // live activity: last few events
+  const recent = [...state.turns].slice(-3).reverse();
+  $('activityLines').innerHTML = recent.map(t => {
+    const who = t.kind === 'human' ? {dot: 'human-dot', label: 'You'} :
+      t.agent === lead.name ? {dot: lead.cli + '-dot', label: AGENT_META[lead.cli].label}
+                            : {dot: chal.cli + '-dot', label: AGENT_META[chal.cli].label};
+    const what = t.kind === 'human' ? 'sent a direction' :
+      t.verdict === 'AGREE' ? 'signaled agreement' : `replied in round ${t.round}`;
+    return `<div class="activity-line"><i class="${who.dot}"></i><span>${who.label}</span><p>${what}</p><time>${relTime(t.ts)}</time></div>`;
+  }).join('') || '<div class="hint-text">No activity yet</div>';
+
+  setTab(activeTab, true);
+}
+
+// ---------- tabs & artifacts ----------
+function setTab(tab, silent) {
+  activeTab = tab;
+  $('tabDebate').className = tab === 'debate' ? 'active' : '';
+  $('tabArtifacts').className = tab === 'artifacts' ? 'active' : '';
+  $('timeline').style.display = tab === 'debate' ? '' : 'none';
+  $('artifactsView').style.display = tab === 'artifacts' ? '' : 'none';
+  if (tab === 'artifacts' && !silent) loadArtifacts();
+}
+$('tabDebate').onclick = () => setTab('debate');
+$('tabArtifacts').onclick = () => setTab('artifacts');
+
+async function loadArtifacts() {
+  if (!active) return;
+  const items = await api(`/api/artifacts/${active}`);
+  $('artifactCount').textContent = items.length;
+  const kb = n => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
+  $('artifactsView').innerHTML = items.map(a => `
+    <div class="artifact-card">
+      <span>${a.kind === 'report'
+        ? '<svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 13h6M9 17h4"/></svg>'
+        : '<svg class="icon" width="20" height="20" viewBox="0 0 24 24"><path d="m8 9-3 3 3 3M16 9l3 3-3 3M14 5l-4 14"/></svg>'}</span>
+      <div><b>${esc(a.name)}</b><small>${kb(a.size)} · updated ${relTime(new Date(a.mtime * 1000).toISOString())} ago</small></div>
+      <button type="button" title="Copy path" onclick='copyText(${JSON.stringify(a.path)})'>
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+      </button>
+    </div>`).join('') || '<div class="empty-state">No files produced in the working directory yet</div>';
+}
+
+// ---------- polling ----------
+async function poll() {
+  if (!active || view !== 'run') return;
+  try {
+    const state = await api(`/api/state/${active}`);
+    if (state.status) renderRun(state);
+    if (['running', 'paused', 'starting'].includes(state.status) || !state.status)
+      pollTimer = setTimeout(poll, 3000);
+    if (activeTab === 'artifacts') loadArtifacts();
+  } catch (e) { pollTimer = setTimeout(poll, 3000); }
+  refreshRuns();
+}
+setInterval(() => {  // tick elapsed clock between polls
+  if (currentState && view === 'run' && ['running', 'paused', 'starting'].includes(currentState.status))
+    $('statElapsed').textContent = elapsed(currentState);
+}, 1000);
+setInterval(refreshRuns, 10000);
+
+// ---------- models & roles ----------
+function fillSelect(sel, models, emptyLabel) {
+  let h = emptyLabel ? `<option value="">${esc(emptyLabel)}</option>` : '';
+  h += models.map(x => `<option value="${x.id}">${esc(x.label)}${x.description ? ' — ' + esc(x.description) : ''}</option>`).join('');
+  h += `<option value="__custom">Custom model ID…</option>`;
+  sel.innerHTML = h;
+}
+const modelOf = (selId, inpId) =>
+  $(selId).value === '__custom' ? $(inpId).value.trim() : $(selId).value;
+
+async function loadModels() {
+  try {
+    const m = await api('/api/models');
+    fillSelect($('claudeModel'), m.claude);
+    $('claudeModel').value = 'sonnet';
+    codexModels = m.codex || [];
+    fillSelect($('codexModel'), codexModels, 'account default');
+  } catch (e) {
+    fillSelect($('claudeModel'), [{id: 'opus'}, {id: 'sonnet'}, {id: 'haiku'}]);
+    $('claudeModel').value = 'sonnet';
+    fillSelect($('codexModel'), [], 'account default');
+  }
+  updateEfforts();
+  drawAgentStripFromForm();
+  try {
+    defaultRoles = await api('/api/roles');
+    $('leadRole').value = defaultRoles.lead;
+    $('chalRole').value = defaultRoles.challenger;
+  } catch (e) {}
+}
+let effortLevels = [], effortDefault = '';
+function updateEfforts() {
+  const m = codexModels.find(x => x.id === modelOf('codexModel', 'codexModelCustom'));
+  effortLevels = m ? m.efforts : [];
+  effortDefault = m && m.default_effort ? m.default_effort : '';
+  const s = $('codexEffort');
+  s.max = effortLevels.length;
+  s.value = 0;
+  s.disabled = !effortLevels.length;
+  $('effortTicks').innerHTML = ['auto', ...effortLevels].map((e, i) =>
+    `<span data-i="${i}" onclick="setEffort(${i})">${esc(e)}</span>`).join('');
+  drawEffort();
+}
+function chosenEffort() {
+  const v = +$('codexEffort').value;
+  return v > 0 ? effortLevels[v - 1] : '';
+}
+function setEffort(i) {
+  if ($('codexEffort').disabled) return;
+  $('codexEffort').value = i;
+  drawEffort();
+}
+function drawEffort() {
+  const s = $('codexEffort'), v = +s.value;
+  $('effortValue').textContent = v > 0 ? effortLevels[v - 1]
+    : `model default${effortDefault ? ` (${effortDefault})` : ''}`;
+  const pct = s.max > 0 ? (v / +s.max) * 100 : 0;
+  s.style.background = `linear-gradient(to right, #4e7e66 ${pct}%, #e8ece9 ${pct}%)`;
+  [...$('effortTicks').children].forEach((el, i) => el.className = i === v ? 'on' : '');
+}
+$('codexEffort').addEventListener('input', drawEffort);
+for (const [selId, inpId] of [['claudeModel', 'claudeModelCustom'], ['codexModel', 'codexModelCustom']]) {
+  $(selId).addEventListener('change', () => {
+    $(inpId).style.display = $(selId).value === '__custom' ? '' : 'none';
+    updateEfforts();
+    drawAgentStripFromForm();
+  });
+}
+$('codexModelCustom').addEventListener('input', () => { updateEfforts(); drawAgentStripFromForm(); });
+$('claudeModelCustom').addEventListener('input', drawAgentStripFromForm);
+$('leadAgent').addEventListener('change', drawAgentStripFromForm);
+
+// ---------- actions ----------
+$('startForm').onsubmit = async e => {
+  e.preventDefault();
+  if (!$('task').value.trim()) { $('startHint').textContent = 'task required'; return; }
+  $('startBtn').disabled = true;
+  $('startHint').textContent = 'starting…';
+  const body = {
+    task: $('task').value, max_rounds: +$('rounds').value,
+    lead_agent: $('leadAgent').value,
+    claude_model: modelOf('claudeModel', 'claudeModelCustom'),
+    codex_model: modelOf('codexModel', 'codexModelCustom'),
+    codex_effort: chosenEffort(),
+    workdir: $('workdir').value,
+  };
+  if ($('leadRole').value.trim() !== defaultRoles.lead.trim()) body.lead_role = $('leadRole').value;
+  if ($('chalRole').value.trim() !== defaultRoles.challenger.trim()) body.challenger_role = $('chalRole').value;
+  const res = await api('/api/start', {method: 'POST', body: JSON.stringify(body)});
+  $('startBtn').disabled = false;
+  if (res.error) { $('startHint').textContent = res.error; return; }
+  $('startHint').textContent = '';
+  $('task').value = '';
+  toast('Orchestration started');
+  await refreshRuns();
+  selectRun(res.run_id);
+};
+
+$('composer').onsubmit = async e => {
+  e.preventDefault();
+  const text = $('directorMsg').value.trim();
+  if (!text || !active) return;
+  await api(`/api/message/${active}`, {method: 'POST', body: JSON.stringify({text})});
+  $('directorMsg').value = '';
+  toast('Direction added to the next agent turn');
+  clearTimeout(pollTimer);
+  poll();
+};
+$('directorMsg').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') $('composer').requestSubmit();
+});
+
+$('pauseBtn').onclick = async () => {
+  if (!active || !currentState) return;
+  const paused = currentState.status === 'paused';
+  await api(`/api/${paused ? 'resume' : 'pause'}/${active}`, {method: 'POST'});
+  toast(paused ? 'Resuming' : 'Pausing after the current turn');
+  clearTimeout(pollTimer);
+  poll();
+};
+$('stopBtn').onclick = async () => {
+  if (active && confirm('Stop this run? The lead will write a final report from the current state.')) {
+    await api(`/api/stop/${active}`, {method: 'POST'});
+    toast('Stopping — final report on its way');
+    clearTimeout(pollTimer);
+    poll();
+  }
+};
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied'), () => toast('Copy failed'));
+}
+$('copyDebateBtn').onclick = () => {
+  if (!currentState) return;
+  let md = `# ${currentState.task}\n`;
+  for (const t of currentState.turns)
+    md += `\n## ${t.kind === 'human' ? 'Human director' : t.agent}${t.round ? ` — round ${t.round}` : ''}\n\n${t.text}\n`;
+  if (currentState.final_report) md += `\n## Final report\n\n${currentState.final_report}\n`;
+  copyText(md);
+};
+$('workdirBtn').onclick = () => currentState && copyText(currentState.workdir);
+$('newRunBtn').onclick = showNewView;
+$('configureBtn').onclick = showNewView;
+$('searchInput').addEventListener('input', drawRuns);
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); showNewView(); }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('searchInput').focus(); }
+});
+
+// ---------- boot ----------
+loadModels();
+refreshRuns().then(() => {
+  const liveRun = runsCache.find(r => ['running', 'paused', 'starting'].includes(r.status));
+  if (liveRun) selectRun(liveRun.run_id);
+  else showNewView();
+});
+</script>
+</body>
+</html>

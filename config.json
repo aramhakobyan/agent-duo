@@ -1,0 +1,25 @@
+{
+  "max_rounds": 5,
+  "turn_timeout_sec": 2400,
+  "workdir": null,
+  "lead_agent": "claude",
+  "roles": {
+    "lead": "roles/lead.md",
+    "challenger": "roles/challenger.md"
+  },
+  "agents": {
+    "claude": {
+      "bin": "claude",
+      "model": "sonnet",
+      "permission_mode": "acceptEdits",
+      "allowed_tools": "Read Write Edit Glob Grep Bash(python3:*) Bash(python:*) Bash(ls:*) Bash(cat:*) Bash(head:*) Bash(tail:*)",
+      "dangerously_skip_permissions": false
+    },
+    "codex": {
+      "bin": "codex",
+      "model": null,
+      "sandbox": "workspace-write",
+      "config_overrides": []
+    }
+  }
+}

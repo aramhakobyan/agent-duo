@@ -1,0 +1,18 @@
+# Run artifacts: transcripts, state and logs may contain private data/results
+runs/
+workspace/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local tooling / OS
+.claude/
+.idea/
+.vscode/
+.DS_Store
+*.zip
+config.local.json
