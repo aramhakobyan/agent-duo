@@ -18,4 +18,7 @@ else:
     verdict = os.environ.get("FAKE_CLAUDE_VERDICT", "AGREE")
     result = f"Claude position.\n\n- point one\n\nCONFIDENCE: 8\nVERDICT: {verdict}"
 
-print(json.dumps({"session_id": "claude-sess-1", "result": result, "is_error": False}))
+session = "claude-fork-1" if "--fork-session" in argv else "claude-sess-1"
+if "--resume" in argv and "--fork-session" not in argv:
+    session = argv[argv.index("--resume") + 1]
+print(json.dumps({"session_id": session, "result": result, "is_error": False}))

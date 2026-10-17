@@ -99,7 +99,7 @@ fi
 echo
 echo "[3/4] Project files"
 
-for f in orchestrator.py server.py config.json roles/lead.md roles/challenger.md ui/index.html tests/test_agent_duo.py; do
+for f in orchestrator.py server.py context_sources.py config.json roles/lead.md roles/challenger.md ui/index.html tests/test_agent_duo.py; do
   if [ -f "$SCRIPT_DIR/$f" ]; then pass "$f"; else fail "missing $f"; fi
 done
 mkdir -p "$SCRIPT_DIR/runs" "$SCRIPT_DIR/workspace"

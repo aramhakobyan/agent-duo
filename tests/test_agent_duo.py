@@ -207,6 +207,12 @@ class TestDebateLoop(Sandbox):
         # ChatGPT.app notify hook is always suppressed
         self.assertTrue(all("notify=[]" in a for a in codex))
 
+    def test_challenger_receives_task_once(self):
+        self.run_orchestrator(max_rounds=2, FAKE_CODEX_VERDICT="CONTINUE")
+        codex = [c["prompt"] for c in read_log(self.log) if c["agent"] == "codex"]
+        self.assertIn("Is the fake hypothesis true?", codex[0])
+        self.assertTrue(all("Is the fake hypothesis true?" not in p for p in codex[1:]))
+
     def test_codex_can_lead_and_overrides_apply(self):
         state = self.run_orchestrator("--codex-model", "gpt-test", "--codex-effort", "high",
                                       "--claude-model", "haiku", lead_agent="codex")
@@ -277,7 +283,9 @@ class TestDebateLoop(Sandbox):
 # HTTP API
 # ---------------------------------------------------------------------------
 
-class TestServer(Sandbox):
+class ServerSandbox(Sandbox):
+    """Sandbox plus a live HTTP server on a free port (no tests of its own)."""
+
     def setUp(self):
         super().setUp()
         self.config = make_config(self.tmp, max_rounds=2)
@@ -304,10 +312,15 @@ class TestServer(Sandbox):
             p.stop()
         super().tearDown()
 
-    def call(self, path, body=None):
-        data = None if body is None else json.dumps(body).encode()
+    def call(self, path, body=None, headers=None, raw=None):
+        data = raw if raw is not None else (None if body is None else json.dumps(body).encode())
         req = urllib.request.Request(self.base + path, data=data,
-                                     method="POST" if body is not None else "GET")
+                                     method="POST" if data is not None else "GET")
+        hdrs = {"X-Agent-Duo": "1"}
+        hdrs.update(headers or {})
+        for k, v in hdrs.items():
+            if v is not None:
+                req.add_header(k, v)
         try:
             with urllib.request.urlopen(req, timeout=10) as r:
                 raw = r.read()
@@ -334,6 +347,8 @@ class TestServer(Sandbox):
             time.sleep(0.2)
         self.fail(f"run {run_id} did not finish")
 
+
+class TestServer(ServerSandbox):
     def test_index_served(self):
         code, body = self.call("/")
         self.assertEqual(code, 200)

@@ -261,6 +261,36 @@ h1 { margin: 0; max-width: 560px; overflow: hidden; color: #1b2821; font-family:
 .effort-ticks span { cursor: pointer; }
 .effort-ticks span.on { color: #2f5a45; }
 .start-row { margin-top: 18px; display: flex; align-items: center; gap: 10px; }
+.ctx-summary { margin-left: 6px; color: #2f5a45; font-weight: 700; }
+.ctx-help { display: block; margin-top: 8px; font-size: 9.5px; line-height: 1.5; }
+.bg-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.bg-row { min-width: 0; padding: 8px 10px; background: white; border: 1px solid #e1e6e2; border-radius: 7px; }
+.bg-row-head { display: flex; align-items: center; gap: 8px; }
+.bg-kind { padding: 2px 5px; color: #50705f; background: #eaf0ec; border-radius: 4px; font-size: 7.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.bg-row-head b { min-width: 0; flex: 1; overflow: hidden; color: #2c3731; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.bg-row-head button { padding: 2px 6px; color: #6f7b74; background: none; border: 0; border-radius: 4px; font-size: 9px; cursor: pointer; }
+.bg-row-head button:hover { background: #f0f3f1; }
+.bg-row pre { max-height: 220px; margin: 8px 0 0; padding: 9px; overflow: auto; color: #4b5852; background: #f7f8f7; border-radius: 6px; font: 9.5px/1.5 ui-monospace, monospace; white-space: pre-wrap; }
+.bg-add { margin-top: 7px; display: flex; gap: 7px; }
+.bg-add select { flex: 1; }
+.ghost-button { height: 34px; padding: 0 12px; color: #2f5a45; background: white; border: 1px solid #cfd9d3; border-radius: 7px; font-size: 11px; font-weight: 650; cursor: pointer; }
+.ghost-button:hover { background: #f5f7f5; }
+.primary-button.small { height: 30px; padding: 0 11px; font-size: 10.5px; }
+.upload-button { margin-top: 8px; padding: 9px 10px; display: flex; align-items: center; gap: 7px; color: #536159; background: white; border: 1px dashed #c7d2cb; border-radius: 7px; font-size: 10.5px; cursor: pointer; }
+.upload-button:hover { background: #f5f7f5; }
+.upload-button input { display: none; }
+.export-picker { margin-top: 8px; padding: 10px; background: white; border: 1px solid #d8e2dc; border-radius: 8px; }
+.export-head { display: flex; align-items: center; gap: 8px; }
+.export-head b { flex: 1; font-size: 11px; }
+.export-head input { width: 50%; }
+.export-list { max-height: 240px; margin-top: 8px; overflow-y: auto; display: grid; gap: 2px; }
+.export-list label { padding: 5px 6px; display: flex; align-items: center; gap: 8px; border-radius: 5px; font-size: 10.5px; cursor: pointer; }
+.export-list label:hover { background: #f3f6f4; }
+.export-list label span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.export-list small { color: #95a09a; font-size: 9px; white-space: nowrap; }
+.export-actions { margin-top: 8px; display: flex; justify-content: flex-end; gap: 7px; }
+.check-row { margin-top: 12px; display: flex; align-items: center; gap: 7px; color: #6f7b74; font-size: 10px; cursor: pointer; }
+.check-row input { width: auto; }
 .primary-button { height: 36px; padding: 0 14px; display: inline-flex; align-items: center; gap: 7px; color: white; background: #244c3a; border: 0; border-radius: 8px; font-size: 12px; font-weight: 650; cursor: pointer; }
 .primary-button:hover { background: #193d2d; }
 .primary-button:disabled { background: #a9b6ae; cursor: default; }
@@ -402,6 +432,46 @@ h1 { margin: 0; max-width: 560px; overflow: hidden; color: #1b2821; font-family:
                 <input id="workdir" placeholder="default: ./workspace">
               </div>
             </div>
+            <details class="roles-details" id="contextBox">
+              <summary>Context — build on earlier conversations <span class="ctx-summary" id="ctxSummary"></span></summary>
+              <div class="field-row">
+                <div class="field">
+                  <label>Claude starts from</label>
+                  <select id="claudeFork"><option value="">a fresh session</option></select>
+                </div>
+                <div class="field">
+                  <label>Codex starts from</label>
+                  <select id="codexFork"><option value="">a fresh thread</option></select>
+                </div>
+              </div>
+              <p class="hint-text ctx-help">Forking gives an agent its own earlier conversation as native memory (the original stays untouched). Shared background is given to both agents. Both are framed as history, not as work to resume.</p>
+              <div class="field">
+                <label>Shared background (both agents)</label>
+                <div id="bgList" class="bg-list"></div>
+                <div class="bg-add">
+                  <select id="bgPick"><option value="">Add a Claude Code session or Codex thread…</option></select>
+                  <button type="button" class="ghost-button" id="bgAddBtn">Add</button>
+                </div>
+                <label class="upload-button">
+                  <input type="file" id="bgUpload" accept=".zip,.json,.md,.markdown,.txt">
+                  <svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+                  Upload ChatGPT / claude.ai export or a transcript file
+                </label>
+                <span class="hint-text" id="uploadHint"></span>
+                <div id="exportPicker" class="export-picker" style="display:none">
+                  <div class="export-head">
+                    <b id="exportTitle"></b>
+                    <input id="exportSearch" placeholder="Filter conversations">
+                  </div>
+                  <div id="exportList" class="export-list"></div>
+                  <div class="export-actions">
+                    <button type="button" class="ghost-button" id="exportCancel">Close</button>
+                    <button type="button" class="primary-button small" id="exportAdd">Add selected</button>
+                  </div>
+                </div>
+              </div>
+              <label class="check-row"><input type="checkbox" id="ctxHeadless"> Show headless sessions (including earlier Agent Duo runs)</label>
+            </details>
             <details class="roles-details" id="rolesBox">
               <summary>Roles — edit for this run</summary>
               <div class="field">
@@ -511,7 +581,7 @@ h1 { margin: 0; max-width: 560px; overflow: hidden; color: #1b2821; font-family:
 
 <script>
 const $ = id => document.getElementById(id);
-const api = (path, opts) => fetch(path, opts).then(r => r.json());
+const api = (path, opts = {}) => fetch(path, {...opts, headers: {'X-Agent-Duo': '1', ...(opts.headers || {})}}).then(r => r.json());
 
 // ---------- state ----------
 let active = null, view = 'new', activeTab = 'debate';
@@ -708,6 +778,27 @@ function renderRun(state) {
       <span><svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2zM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8zM19 13l.7 1.3L21 15l-1.3.7L19 17l-.7-1.3L17 15l1.3-.7z"/></svg></span>
       <p><b>Orchestration started</b>${esc(AGENT_META[lead.cli].label)} leads. ${esc(AGENT_META[chal.cli].label)} challenges each proposal. Consensus requires both agents to agree.</p>
       <time>${clockOf(state.started).slice(0, 5)}</time>
+    </div>`;
+
+  const ctx = state.context || {};
+  if ((ctx.claude_fork || ctx.codex_fork) && !ctxLoaded) {
+    ctxLoaded = true;  // one fetch; re-render once titles are known
+    loadContextSources().then(() => { if (currentState === state) renderRun(state); });
+  }
+  const forkTitle = (list, id) => {
+    const s = (list || []).find(x => x.id === id);
+    return s ? `“${s.title}”` : id.slice(0, 8);
+  };
+  const ctxBits = [];
+  if (ctx.claude_fork) ctxBits.push(`Claude continues from ${esc(forkTitle(ctxSessions.claude, ctx.claude_fork))}`);
+  if (ctx.codex_fork) ctxBits.push(`Codex continues from ${esc(forkTitle(ctxSessions.codex, ctx.codex_fork))}`);
+  if (ctx.background_chars) ctxBits.push(
+    `shared background: ${(ctx.background_sources || []).map(s => esc(s)).join('; ') || 'provided'} ` +
+    `(${Math.round(ctx.background_chars / 1000)}k chars — see Artifacts › context.md)`);
+  if (ctxBits.length) h += `
+    <div class="system-note">
+      <span><svg class="icon" width="14" height="14" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v5h5M9 13h6M9 17h4"/></svg></span>
+      <p><b>Context</b>${ctxBits.join(' · ')}</p>
     </div>`;
 
   for (const t of state.turns) {
@@ -941,6 +1032,141 @@ $('codexModelCustom').addEventListener('input', () => { updateEfforts(); drawAge
 $('claudeModelCustom').addEventListener('input', drawAgentStripFromForm);
 $('leadAgent').addEventListener('change', drawAgentStripFromForm);
 
+// ---------- context: forks + shared background ----------
+let ctxSessions = {claude: [], codex: []}, bgItems = [], ctxLoaded = false, currentExport = null;
+const KIND_LABEL = {claude_session: 'Claude Code', codex_thread: 'Codex', export: 'Export', upload: 'File'};
+const dateOf = iso => iso ? iso.slice(0, 10) : '';
+const projOf = p => (p || '').split('/').filter(Boolean).pop() || '';
+const sessionLabel = s => `${s.title} — ${projOf(s.project)} · ${dateOf(s.updated)} · ${s.messages} msgs`;
+
+async function loadContextSources() {
+  const q = $('ctxHeadless').checked ? '?include_headless=1' : '';
+  try { ctxSessions = await api('/api/context/sessions' + q); }
+  catch (e) { toast('Could not read local sessions'); return; }
+  ctxLoaded = true;
+  const options = list => list.map(s => `<option value="${esc(s.id)}">${esc(sessionLabel(s))}</option>`).join('');
+  for (const [sel, list, fresh] of [['claudeFork', ctxSessions.claude, 'a fresh session'],
+                                   ['codexFork', ctxSessions.codex, 'a fresh thread']]) {
+    const keep = $(sel).value;
+    $(sel).innerHTML = `<option value="">${fresh}</option>` + options(list);
+    $(sel).value = keep;
+  }
+  const group = (label, kind, list) => list.length
+    ? `<optgroup label="${label}">${list.map(s =>
+        `<option value="${kind}|${esc(s.id)}">${esc(sessionLabel(s))}</option>`).join('')}</optgroup>` : '';
+  $('bgPick').innerHTML = '<option value="">Add a Claude Code session or Codex thread…</option>' +
+    group('Claude Code sessions', 'claude_session', ctxSessions.claude) +
+    group('Codex threads', 'codex_thread', ctxSessions.codex);
+  updateCtxSummary();
+}
+
+function updateCtxSummary() {
+  const parts = [];
+  if ($('claudeFork').value) parts.push('Claude forked');
+  if ($('codexFork').value) parts.push('Codex forked');
+  if (bgItems.length) parts.push(`${bgItems.length} background source${bgItems.length > 1 ? 's' : ''}`);
+  $('ctxSummary').textContent = parts.length ? '· ' + parts.join(' · ') : '';
+}
+
+function addBg(item) {
+  if (bgItems.some(b => b.kind === item.kind && b.ref === item.ref)) return;
+  bgItems.push({...item, preview: null, open: false});
+  drawBg();
+}
+
+function drawBg() {
+  $('bgList').innerHTML = bgItems.map((b, i) => `
+    <div class="bg-row">
+      <div class="bg-row-head">
+        <span class="bg-kind">${KIND_LABEL[b.kind] || b.kind}</span>
+        <b title="${esc(b.title)}">${esc(b.title)}</b>
+        <button type="button" onclick="toggleBgPreview(${i})">${b.open ? 'Hide' : 'Preview'}</button>
+        <button type="button" onclick="removeBg(${i})" title="Remove">✕</button>
+      </div>
+      ${b.open ? `<pre>${esc(b.preview == null ? 'Loading…' : b.preview)}</pre>` : ''}
+    </div>`).join('');
+  updateCtxSummary();
+}
+
+function removeBg(i) { bgItems.splice(i, 1); drawBg(); }
+
+async function toggleBgPreview(i) {
+  const b = bgItems[i];
+  b.open = !b.open;
+  drawBg();
+  if (b.open && b.preview == null) {
+    const res = await api(`/api/context/preview?kind=${encodeURIComponent(b.kind)}&ref=${encodeURIComponent(b.ref)}`);
+    b.preview = res.error ? `Error: ${res.error}` : res.markdown;
+    drawBg();
+  }
+}
+
+$('bgAddBtn').onclick = () => {
+  const v = $('bgPick').value;
+  if (!v) return;
+  const [kind, id] = v.split('|');
+  const s = (kind === 'claude_session' ? ctxSessions.claude : ctxSessions.codex).find(x => x.id === id);
+  addBg({kind, ref: id, title: s ? s.title : id});
+  $('bgPick').value = '';
+};
+
+$('bgUpload').onchange = async () => {
+  const file = $('bgUpload').files[0];
+  $('bgUpload').value = '';
+  if (!file) return;
+  $('uploadHint').textContent = `Uploading ${file.name}…`;
+  const res = await api(`/api/context/upload?name=${encodeURIComponent(file.name)}`,
+                        {method: 'POST', body: file});
+  $('uploadHint').textContent = '';
+  if (res.error) { toast(res.error); return; }
+  if (res.kind === 'upload') {
+    addBg({kind: 'upload', ref: res.token, title: res.name});
+    toast('File added as shared background');
+    return;
+  }
+  currentExport = res;
+  $('exportTitle').textContent =
+    `${res.format === 'chatgpt' ? 'ChatGPT' : 'claude.ai'} export · ${res.conversations.length} conversations`;
+  $('exportSearch').value = '';
+  drawExportList();
+  $('exportPicker').style.display = '';
+};
+
+function drawExportList() {
+  if (!currentExport) return;
+  const q = $('exportSearch').value.trim().toLowerCase();
+  const rows = currentExport.conversations.filter(c => !q || c.title.toLowerCase().includes(q)).slice(0, 300);
+  $('exportList').innerHTML = rows.map(c => `
+    <label><input type="checkbox" value="${esc(c.id)}"><span>${esc(c.title)}</span>
+      <small>${dateOf(c.updated)} · ${c.messages} msgs</small></label>`).join('') ||
+    '<div class="hint-text">No conversations match</div>';
+}
+$('exportSearch').addEventListener('input', drawExportList);
+$('exportCancel').onclick = () => { $('exportPicker').style.display = 'none'; currentExport = null; };
+$('exportAdd').onclick = () => {
+  const picked = [...$('exportList').querySelectorAll('input:checked')].map(i => i.value);
+  const label = currentExport.format === 'chatgpt' ? 'ChatGPT' : 'claude.ai';
+  for (const id of picked) {
+    const c = currentExport.conversations.find(x => x.id === id);
+    addBg({kind: 'export', ref: `${currentExport.token}:${id}`, title: `${c ? c.title : id} (${label})`});
+  }
+  $('exportPicker').style.display = 'none';
+  currentExport = null;
+  if (picked.length) toast(`${picked.length} conversation${picked.length > 1 ? 's' : ''} added`);
+};
+
+$('contextBox').addEventListener('toggle', () => { if ($('contextBox').open && !ctxLoaded) loadContextSources(); });
+$('ctxHeadless').addEventListener('change', loadContextSources);
+$('claudeFork').addEventListener('change', updateCtxSummary);
+$('codexFork').addEventListener('change', updateCtxSummary);
+
+function resetContext() {
+  $('claudeFork').value = '';
+  $('codexFork').value = '';
+  bgItems = [];
+  drawBg();
+}
+
 // ---------- actions ----------
 $('startForm').onsubmit = async e => {
   e.preventDefault();
@@ -954,6 +1180,9 @@ $('startForm').onsubmit = async e => {
     codex_model: modelOf('codexModel', 'codexModelCustom'),
     codex_effort: chosenEffort(),
     workdir: $('workdir').value,
+    claude_fork: $('claudeFork').value,
+    codex_fork: $('codexFork').value,
+    context: bgItems.map(b => ({kind: b.kind, ref: b.ref})),
   };
   if ($('leadRole').value.trim() !== defaultRoles.lead.trim()) body.lead_role = $('leadRole').value;
   if ($('chalRole').value.trim() !== defaultRoles.challenger.trim()) body.challenger_role = $('chalRole').value;
@@ -962,6 +1191,7 @@ $('startForm').onsubmit = async e => {
   if (res.error) { $('startHint').textContent = res.error; return; }
   $('startHint').textContent = '';
   $('task').value = '';
+  resetContext();
   toast('Orchestration started');
   await refreshRuns();
   selectRun(res.run_id);

@@ -18,11 +18,15 @@ import datetime
 import json
 import os
 import re
+import secrets
 import shutil
 import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+import context_sources
 
 HERE = Path(__file__).resolve().parent
 RUNS = Path(os.environ.get("AGENT_DUO_RUNS_DIR") or HERE / "runs")
@@ -138,8 +142,22 @@ def start_run(body):
         cmd += ["--codex-effort", str(body["codex_effort"])]
     if body.get("workdir"):
         cmd += ["--workdir", str(body["workdir"])]
-    # Per-run role overrides: staged to files the orchestrator reads at start
+    for key, flag in (("claude_fork", "--claude-fork"), ("codex_fork", "--codex-fork")):
+        ref = str(body.get(key) or "").strip()
+        if ref:
+            if not re.fullmatch(r"[0-9A-Za-z-]{8,64}", ref):
+                raise ValueError(f"bad {key} id")
+            cmd += [flag, ref]
     staged = RUNS / ".staged"
+    specs, uploads = resolve_context(body.get("context"))
+    if specs:
+        max_chars = json.loads(CONFIG.read_text()).get("context_max_chars", 120_000)
+        background = context_sources.build_background(specs, max_chars, uploads)
+        staged.mkdir(exist_ok=True)
+        p = staged / f"{run_id}.context.md"
+        p.write_text(background)
+        cmd += ["--context-file", str(p)]
+    # Per-run role overrides: staged to files the orchestrator reads at start
     for key, flag in (("lead_role", "--lead-role-file"),
                       ("challenger_role", "--challenger-role-file")):
         text = (body.get(key) or "").strip()
@@ -172,7 +190,7 @@ def run_artifacts(run_dir):
         t0 = datetime.datetime.fromisoformat(started).timestamp()
     except ValueError:
         t0 = 0
-    for name in ("consensus.md", "transcript.md"):
+    for name in ("consensus.md", "transcript.md", "context.md"):
         f = run_dir / name
         if f.is_file():
             out.append({"name": name, "path": str(f), "size": f.stat().st_size,
@@ -203,9 +221,91 @@ def run_dir_of(run_id):
     return d
 
 
+UPLOADS = lambda: RUNS / ".uploads"  # noqa: E731 — follows RUNS when patched
+UPLOAD_ID_RE = re.compile(r"^[0-9a-f]{16}$")
+MAX_UPLOAD = 1 << 30  # 1 GiB: ChatGPT exports with images get large
+
+
+def uploads_map():
+    d = UPLOADS()
+    return {p.name.split(".")[0]: p for p in d.iterdir()} if d.is_dir() else {}
+
+
+def save_upload(name, stream, length):
+    """Stream an uploaded file to runs/.uploads and describe what it is."""
+    if length <= 0:
+        raise ValueError("empty upload")
+    if length > MAX_UPLOAD:
+        raise ValueError("upload larger than 1 GiB")
+    suffix = "".join(Path(name).suffixes[-2:])[:16] or ".bin"
+    if not re.fullmatch(r"[.A-Za-z0-9]+", suffix):
+        suffix = ".bin"
+    token = secrets.token_hex(8)
+    UPLOADS().mkdir(parents=True, exist_ok=True)
+    path = UPLOADS() / f"{token}{suffix}"
+    with open(path, "wb") as f:
+        left = length
+        while left:
+            chunk = stream.read(min(left, 1 << 20))
+            if not chunk:
+                break
+            f.write(chunk)
+            left -= len(chunk)
+    try:
+        fmt, data = context_sources.load_export(path)
+        return {"token": token, "name": name, "kind": "export", "format": fmt,
+                "conversations": context_sources.export_conversations(fmt, data)}
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
+        pass  # not an export: treat as a plain transcript / notes file
+    try:
+        chars = len(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        path.unlink()
+        raise ValueError("unsupported file: upload a ChatGPT/claude.ai export "
+                         "(zip or conversations.json) or a text/markdown transcript")
+    return {"token": token, "name": name, "kind": "upload", "chars": chars}
+
+
+def resolve_context(items):
+    """Client-supplied context items -> context_sources specs. Raw file
+    paths are never accepted over HTTP; files arrive as upload tokens."""
+    uploads, specs = uploads_map(), []
+    for it in items or []:
+        kind, ref = it.get("kind"), str(it.get("ref") or "")
+        if kind in ("claude_session", "codex_thread", "export"):
+            specs.append({"kind": kind, "ref": ref})
+        elif kind == "upload":
+            if ref not in uploads:
+                raise FileNotFoundError("upload expired — add the file again")
+            specs.append({"kind": "file", "ref": str(uploads[ref])})
+        else:
+            raise ValueError(f"unknown context kind: {kind}")
+    return specs, uploads
+
+
 class Handler(BaseHTTPRequestHandler):
+    # Hosts accepted in the Host header (DNS-rebinding defence); None = any.
+    allowed_hosts = {"127.0.0.1", "localhost", "[::1]", "::1"}
+
     def log_message(self, fmt, *args):
         pass  # keep the console quiet
+
+    def _guard(self, write):
+        """Block cross-site use of the local API. Reads need a local Host
+        header; writes additionally need the X-Agent-Duo header, which a
+        browser only lets another site send after a CORS preflight that this
+        server never approves."""
+        if self.allowed_hosts is not None:
+            header = self.headers.get("Host") or ""
+            host = header.split("]")[0] + "]" if header.startswith("[") \
+                else header.split(":")[0]
+            if host not in self.allowed_hosts:
+                self._send(403, {"error": "forbidden host"})
+                return False
+        if write and self.headers.get("X-Agent-Duo") != "1":
+            self._send(403, {"error": "missing X-Agent-Duo header"})
+            return False
+        return True
 
     def _send(self, code, payload, ctype="application/json"):
         body = payload if isinstance(payload, bytes) else \
@@ -222,8 +322,23 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
+        if not self._guard(write=False):
+            return
+        url = urlparse(self.path)
+        query = parse_qs(url.query)
         try:
-            if self.path in ("/", "/index.html"):
+            if url.path == "/api/context/sessions":
+                headless = query.get("include_headless") == ["1"]
+                self._send(200, {
+                    "claude": context_sources.list_claude_sessions(include_headless=headless),
+                    "codex": context_sources.list_codex_threads(include_headless=headless),
+                })
+            elif url.path == "/api/context/preview":
+                specs, uploads = resolve_context([{"kind": query.get("kind", [""])[0],
+                                                   "ref": query.get("ref", [""])[0]}])
+                text = context_sources.render_source(specs[0], 6_000, uploads)
+                self._send(200, {"markdown": text})
+            elif self.path in ("/", "/index.html"):
                 self._send(200, (HERE / "ui" / "index.html").read_bytes(),
                            "text/html; charset=utf-8")
             elif self.path == "/api/runs":
@@ -254,8 +369,15 @@ class Handler(BaseHTTPRequestHandler):
             self._send(500, {"error": str(e)})
 
     def do_POST(self):
+        if not self._guard(write=True):
+            return
+        url = urlparse(self.path)
         try:
-            if self.path == "/api/start":
+            if url.path == "/api/context/upload":
+                name = parse_qs(url.query).get("name", ["upload"])[0]
+                length = int(self.headers.get("Content-Length") or 0)
+                self._send(200, save_upload(name, self.rfile, length))
+            elif self.path == "/api/start":
                 self._send(200, start_run(self._json_body()))
             elif self.path.startswith("/api/message/"):
                 d = run_dir_of(self.path.rsplit("/", 1)[1])
@@ -310,6 +432,11 @@ def main():
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--host", default="127.0.0.1")
     args = ap.parse_args()
+    if args.host not in ("127.0.0.1", "localhost", "::1"):
+        Handler.allowed_hosts = None
+        print(f"WARNING: listening on {args.host} — the API has no authentication; "
+              "anyone who can reach this port can run agents on this machine.",
+              file=sys.stderr)
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Agent Duo UI: http://{args.host}:{args.port}", flush=True)
     srv.serve_forever()

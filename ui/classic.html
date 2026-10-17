@@ -148,7 +148,7 @@ let active = null, pollTimer = null;
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
   .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
   .replace(/`([^`\n]+)`/g, '<code>$1</code>');
-const api = (path, opts) => fetch(path, opts).then(r => r.json());
+const api = (path, opts = {}) => fetch(path, {...opts, headers: {'X-Agent-Duo': '1', ...(opts.headers || {})}}).then(r => r.json());
 
 function stripProtocol(text) {
   return text.replace(/^\s*(CONFIDENCE|VERDICT):.*$/gim, '').trim();

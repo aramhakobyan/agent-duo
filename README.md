@@ -82,6 +82,7 @@ directory.
   stop (the lead still writes a final report), progress, elapsed time.
 - **Artifacts** — the transcript, the report, and every file created or
   modified in the working directory during the run.
+- **Context** — build on earlier conversations (see below).
 - **Runs sidebar** — search, status, delete finished runs (with confirmation).
 
 Model lists are read from the CLIs themselves: Codex models and their
@@ -91,6 +92,34 @@ reasoning levels come from the catalog Codex caches for your account
 from `~/.claude.json`. Any other model ID can be entered as a custom value.
 
 `ui/classic.html` is a minimal alternative UI against the same API.
+
+## Building on earlier conversations
+
+A debate doesn't have to start from zero. The **Context** section of the
+new-run form (or the CLI flags below) offers two mechanisms:
+
+| | What it does | Sources |
+|---|---|---|
+| **Fork** | The agent starts from a *copy* of one of its own earlier sessions — full native memory, the original stays untouched | Claude ← a Claude Code session; Codex ← a Codex thread |
+| **Shared background** | Selected conversations are rendered to markdown and given to *both* agents in their first prompt, marked as reference material | Claude Code sessions, Codex threads, ChatGPT and claude.ai data exports, any markdown/text transcript |
+
+Where the data comes from:
+
+- **Claude Code** — local sessions in `~/.claude/projects/` (interactive
+  sessions are listed; tick *show headless* to include `claude -p` runs).
+- **Codex** — local threads from `~/.codex` (CLI and desktop app).
+- **ChatGPT / claude.ai** — these are stored on the vendors' servers, so use
+  the official data export (ChatGPT: *Settings → Data controls → Export data*;
+  claude.ai: *Settings → Privacy → Export data*). Upload the zip or its
+  `conversations.json` and pick the conversations you want.
+
+Background is trimmed to `context_max_chars` (default 120 000 characters,
+roughly 30k tokens), keeping the most recent messages of each source; tool
+calls, system reminders and injected environment blocks are dropped. Each run
+saves exactly what the agents received in `runs/<id>/context.md` (shown under
+*Artifacts*), and every preview in the form shows the rendered text before you
+start. Forks re-send the forked history on every turn (with prompt caching),
+so prefer small, focused sessions.
 
 ## CLI
 
@@ -110,6 +139,10 @@ python3 orchestrator.py "Hypothesis: 4h BTC momentum survives 10bps fees" \
 | `--claude-model`, `--codex-model` | per-agent model |
 | `--codex-effort LEVEL` | Codex `model_reasoning_effort` |
 | `--lead-role-file`, `--challenger-role-file` | replace the role text for this run |
+| `--claude-fork SESSION_ID` | start Claude from a fork of a Claude Code session |
+| `--codex-fork THREAD_ID` | start Codex from a fork of a Codex thread |
+| `--context KIND:REF` | shared background, repeatable: `claude_session:<id>`, `codex_thread:<id>`, `file:<path>` |
+| `--context-file FILE` | pre-rendered markdown background, repeatable |
 | `--run-id ID` | name of the run directory |
 | `--config FILE` | alternative config file |
 
@@ -131,6 +164,7 @@ Controlling a run from the shell (this is all the UI does):
 |---|---|
 | `max_rounds` | rounds before a forced wrap-up |
 | `turn_timeout_sec` | per-turn wall clock (backtests can be slow — keep generous) |
+| `context_max_chars` | size cap for shared background (default 120000) |
 | `lead_agent` | default lead: `claude` or `codex` |
 | `roles.lead`, `roles.challenger` | role files attached to each position |
 | `agents.claude.model` | `opus` for deep methodology work, `sonnet` to save cost |
@@ -157,7 +191,8 @@ python3 -m unittest discover -s tests -v
 The suite is fully offline: `tests/fake_agents/` contains stand-ins for
 `claude` and `codex` that mimic each CLI's flags and output format, so
 complete debates — session resume, director messages, pause/stop, role
-overrides, failure handling, and the HTTP API — run end to end with no network
+overrides, forks and shared background from all four history formats, failure
+handling, the API and its cross-site protections — run end to end with no network
 access and no API cost. CI runs it on Python 3.9–3.13 on Linux and macOS.
 
 ## Security notes
@@ -165,6 +200,20 @@ access and no API cost. CI runs it on Python 3.9–3.13 on Linux and macOS.
 - The server has **no authentication** and binds to `127.0.0.1` by default.
   Keep it that way; on a remote machine use an SSH tunnel:
   `ssh -L 8787:127.0.0.1:8787 <host>`.
+- Other websites you visit cannot drive the API: requests must carry a
+  localhost `Host` header (blocks DNS rebinding) and every write must send an
+  `X-Agent-Duo: 1` header, which browsers only allow cross-site after a CORS
+  preflight this server never approves. Binding to another address with
+  `--host` disables the host check and prints a warning.
+- Codex's `workspace-write` sandbox limits *writes*; agents can still *read*
+  anything your user account can. Forks and background make that matter:
+  agents are told to treat earlier conversations as history, not work to
+  resume, but an agent may still try to reopen files the old conversation
+  used. On macOS that shows up as a privacy prompt (e.g. "python3 would like
+  to access your Downloads folder") — deny it unless you expect the access.
+- The Context feature only *reads* local session files, and only when you open
+  it. Over HTTP it never accepts file paths — files arrive as uploads, stored
+  under `runs/.uploads/`.
 - Agents execute code in the working directory with the permissions you
   configure. The defaults are conservative (`acceptEdits` plus a short Bash
   allowlist for Claude; `workspace-write` sandbox for Codex). Use
@@ -204,6 +253,7 @@ iterations, a shared workspace and an auditable transcript.
 
 ```
 orchestrator.py      debate loop, agent adapters, run state / inbox / pause
+context_sources.py   read + render Claude Code, Codex, ChatGPT, claude.ai history
 server.py            HTTP API + static UI (stdlib http.server)
 ui/index.html        web UI (single file, no build step)
 roles/               lead and challenger role prompts
